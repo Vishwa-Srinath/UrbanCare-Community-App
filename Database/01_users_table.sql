@@ -1,6 +1,9 @@
 -- Enables UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Create the custom ENUM type for roles
+CREATE TYPE user_role AS ENUM ('citizen', 'authority', 'admin');
+
 --creating the users table with needed columns
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
