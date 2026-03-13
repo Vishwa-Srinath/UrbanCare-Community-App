@@ -1,8 +1,6 @@
 # Import FastAPI framework
 from fastapi import FastAPI
 
-from app.routes import auth_routes
-from app.routes import geofence_routes
 # Import route files
 from app.routes import auth_routes
 from app.routes import complaint_routes
@@ -37,7 +35,7 @@ app.include_router(auth_routes.router)
 # GET /complaints/{complaint_id}
 app.include_router(complaint_routes.router)
 
-app.include_router(geofence_routes.router)
+
 # Simple test route
 # This helps check whether the backend is running properly
 @app.get("/")
