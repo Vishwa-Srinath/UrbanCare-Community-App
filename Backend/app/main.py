@@ -9,6 +9,9 @@ from app.routes import geofence_routes
 # Import models so SQLAlchemy knows about them
 # These imports help register the tables in the ORM
 from app.models.user import User
+from app.models.citizen import Citizen
+from app.models.authority import Authority
+from app.models.department import Department
 from app.models.location import Location
 from app.models.complaint import Complaint
 from app.models.complaint_image import ComplaintImage
