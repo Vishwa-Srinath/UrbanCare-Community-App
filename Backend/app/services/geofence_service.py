@@ -44,8 +44,13 @@ def get_nearby_complaints(db: Session, lat: float, lng: float):
 
     result = db.execute(query, {"lat": lat, "lng": lng})
 
-    complaints = [dict(row._mapping) for row in result]
+    complaints = []
 
-    redis_client.setex(cache_key, 300, json.dumps(complaints))
+    for row in result:
+        data = dict(row._mapping)
+        complaints.append(data)
+
+    # Cache result for 5 minutes
+    redis_client.setex(cache_key, 300, json.dumps(complaints, default=str))
 
     return complaints
