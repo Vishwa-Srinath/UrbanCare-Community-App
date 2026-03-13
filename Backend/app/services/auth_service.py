@@ -6,8 +6,18 @@ from app.utils.password import hash_password, verify_password
 from app.utils.jwt_handler import create_access_token
 
 
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
+from app.models.user import User
+from app.models.citizen import Citizen
+from app.schemas.user_schema import UserSignup, UserLogin
+from app.utils.password import hash_password, verify_password
+from app.utils.jwt_handler import create_access_token
+
+
 def create_user(db: Session, user_data):
-    
+
     existing_user = db.query(User).filter(User.email == user_data.email).first()
 
     if existing_user:
@@ -26,6 +36,13 @@ def create_user(db: Session, user_data):
     )
 
     db.add(new_user)
+    db.flush()
+
+    # Create citizen profile automatically
+    if user_data.role == "citizen":
+        citizen = Citizen(user_id=new_user.user_id)
+        db.add(citizen)
+
     db.commit()
     db.refresh(new_user)
 
