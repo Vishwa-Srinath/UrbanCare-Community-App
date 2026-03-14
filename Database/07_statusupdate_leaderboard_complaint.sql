@@ -65,3 +65,4 @@ SELECT
 FROM complaints c 
 JOIN locations l ON l.location_id = c.location_id 
 WHERE c.status NOT IN ('fixed', 'closed', 'rejected');
+    AND c.is_hidden = FALSE;
