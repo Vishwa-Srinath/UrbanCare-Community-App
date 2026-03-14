@@ -2,17 +2,17 @@
 CREATE TYPE issue_type AS ENUM ('road_damage', 'streetlight', 'garbage', 'water', 'other');
 CREATE TYPE complaint_status AS ENUM ('created', 'verified', 'assigned', 'in_progress', 'fixed', 'closed', 'rejected');
 
--- 2. Create the Complaints Table
+-- 2. Create the Complaints Table (CORRECTED)
 CREATE TABLE complaints (
     complaint_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
-    -- Foreign Keys
+    -- THE FIX: Pointing to citizens(user_id) to match our inheritance structure
     citizen_id UUID REFERENCES citizens(user_id),
-    assigned_authority_id UUID REFERENCES authorities(authority_id), 
+    
+    assigned_authority_id UUID REFERENCES authorities(authority_id), -- Nullable until assigned
     location_id UUID REFERENCES locations(location_id),
     
     -- Core Complaint Data
-    title VARCHAR(150), -- NEWLY ADDED
     issue_type issue_type NOT NULL,
     description TEXT NOT NULL,
     status complaint_status DEFAULT 'created',
@@ -27,9 +27,6 @@ CREATE TABLE complaints (
     confirm_yes_count INT DEFAULT 0,
     confirm_no_count INT DEFAULT 0,
     
-    -- Admin Moderation
-    is_hidden BOOLEAN DEFAULT FALSE, -- NEWLY ADDED
-    
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -41,7 +38,7 @@ BEFORE UPDATE ON complaints
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
--- 4. Create the Performance Indexes
+-- 4. Create the Performance Indexes (Layer 06 - CRITICAL)
 CREATE INDEX idx_complaints_citizen_status ON complaints USING BTREE (citizen_id, status);
 CREATE INDEX idx_complaints_auth_status ON complaints USING BTREE (assigned_authority_id, status);
 CREATE INDEX idx_complaints_created_at ON complaints USING BTREE (created_at DESC);
