@@ -1,6 +1,8 @@
 from sqlalchemy import Column, String, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+from sqlalchemy import Enum
+
 import uuid
 
 from app.database import Base
@@ -20,7 +22,7 @@ class User(Base):
 
     password_hash = Column(String(255), nullable=False)
 
-    role = Column(String(20), nullable=False)
+    role = Column(Enum("citizen", "authority", "admin", name="user_role"),nullable=False)
 
     is_active = Column(Boolean, default=True)
 
