@@ -1,35 +1,35 @@
-# APIRouter is used to group related API endpoints together
-# Depends is used for dependency injection, like database connection
-# HTTPException is used to return errors like 404 Not Found
+# APIRouter groups complaint-related API endpoints
+# Depends is used for dependency injection
+# HTTPException is used for errors like 404 Not Found
 from fastapi import APIRouter, Depends, HTTPException
 
-# Session type for database access
+# SQLAlchemy session type
 from sqlalchemy.orm import Session
 
-# get_db gives us a database session
+# Database session provider
 from app.database import get_db
 
-# Import schemas for request and response validation
+# Request and response schemas
 from app.schemas.complaint_schema import ComplaintCreate, ComplaintResponse
 
-# Import the service layer
+# Complaint business logic
 from app.services.complaint_service import ComplaintService
 
+# Auth dependency to get currently logged-in user
 from app.dependencies.auth_dependency import get_current_user
 
+# Verification business logic
 from app.services.complaint_verification_service import ComplaintVerificationService
 
-
-from app.dependencies.auth_dependency import get_current_user
-
-# List is used for returning multiple complaints
+# Used when returning multiple complaints
 from typing import List
 
+# UUID type for complaint IDs
 from uuid import UUID
 
-# Create a router object
-# prefix="/complaints" means all routes start with /complaints
-# tags=["Complaints"] groups these endpoints in Swagger docs
+
+# Create complaint router
+# All routes here start with /complaints
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
 
@@ -42,15 +42,17 @@ router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
 @router.post("/", response_model=ComplaintResponse)
 def create_complaint(
-    data: ComplaintCreate,
-    user = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    data: ComplaintCreate,                    # request body validated by schema
+    user=Depends(get_current_user),          # logged-in user from auth
+    db: Session = Depends(get_db)            # database session
 ):
-
+    # Create complaint service object
     service = ComplaintService(db)
 
+    # Save complaint using request data and logged-in user's ID
     complaint = service.create_complaint(data, user["user_id"])
 
+    # Return created complaint
     return complaint
 
 
@@ -62,8 +64,7 @@ def create_complaint(
 # ----------------------------------------
 @router.get("/", response_model=List[ComplaintResponse])
 def get_all_complaints(db: Session = Depends(get_db)):
-
-    # Create service object
+    # Create complaint service
     service = ComplaintService(db)
 
     # Return all complaints from database
@@ -75,16 +76,14 @@ def get_all_complaints(db: Session = Depends(get_db)):
 # Get one complaint by ID
 # ----------------------------------------
 @router.get("/{complaint_id}", response_model=ComplaintResponse)
-
 def get_complaint(complaint_id: UUID, db: Session = Depends(get_db)):
-
-    # Create service object
+    # Create complaint service
     service = ComplaintService(db)
 
-    # Ask service to find complaint by ID
+    # Find complaint by its ID
     complaint = service.get_complaint_by_id(complaint_id)
 
-    # If complaint does not exist, return 404 error
+    # Return 404 if not found
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
@@ -92,16 +91,23 @@ def get_complaint(complaint_id: UUID, db: Session = Depends(get_db)):
     return complaint
 
 
+# ----------------------------------------
+# POST /complaints/{complaint_id}/verify
+# Citizen verifies whether issue is fixed
+# Example:
+# POST /complaints/{id}/verify?is_fixed=true
+# ----------------------------------------
 @router.post("/{complaint_id}/verify")
 def verify_complaint(
-    complaint_id: str,
-    is_fixed: bool,
-    user = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    complaint_id: UUID,                       # complaint being verified
+    is_fixed: bool,                           # verification result
+    user=Depends(get_current_user),          # current logged-in user
+    db: Session = Depends(get_db)            # database session
 ):
-
+    # Create verification service
     service = ComplaintVerificationService(db)
 
+    # Verify complaint using service logic
     return service.verify_complaint(
         complaint_id,
         user["user_id"],
