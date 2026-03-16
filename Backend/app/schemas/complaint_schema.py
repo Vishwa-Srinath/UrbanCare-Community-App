@@ -1,20 +1,24 @@
-# Pydantic BaseModel is used to create data validation schemas
+# Import BaseModel from Pydantic
+# Used to define request and response schemas
 from pydantic import BaseModel
 
-# Optional allows fields to be None or missing
-from typing import Optional, List
-
-# UUID type used for identifiers
+# UUID type for complaint and location IDs
 from uuid import UUID
 
+# Optional fields and list support
+from typing import Optional, List
 
-# Schema for location data sent by frontend
+
+# ---------------------------------------------------------
+# LOCATION INPUT SCHEMA
+# ---------------------------------------------------------
+# Used when creating a complaint to specify location data
 class LocationCreate(BaseModel):
 
-    # Latitude coordinate
+    # Latitude of the complaint location
     latitude: float
 
-    # Longitude coordinate
+    # Longitude of the complaint location
     longitude: float
 
     # Optional street address
@@ -27,50 +31,64 @@ class LocationCreate(BaseModel):
     district: Optional[str] = None
 
 
-# Schema used when creating a complaint
+# ---------------------------------------------------------
+# COMPLAINT CREATION SCHEMA
+# ---------------------------------------------------------
+# Used when a user submits a new complaint
 class ComplaintCreate(BaseModel):
 
-    # Type of issue (road_damage, garbage, etc.)
+    # Type of issue (pothole, garbage, streetlight etc.)
     issue_type: str
 
-    # Short title of the complaint
+    # Title of the complaint
     title: str
 
     # Detailed description of the problem
     description: str
 
-    # Optional priority level
+    # Priority level (default = medium)
     priority: Optional[str] = "medium"
 
     # Nested location object
     location: LocationCreate
 
-    # Optional list of image URLs from Firebase
+    # Optional list of image URLs
     image_urls: Optional[List[str]] = []
 
 
-# Schema used for API responses
+# ---------------------------------------------------------
+# COMPLAINT RESPONSE SCHEMA
+# ---------------------------------------------------------
+# Used when returning complaint data to the client
 class ComplaintResponse(BaseModel):
 
-    # Complaint unique identifier
+    # Unique complaint ID
     complaint_id: UUID
 
-    # Citizen who reported the complaint
-    citizen_id: UUID
-
-    # Location reference
+    # Location ID associated with complaint
     location_id: UUID
 
-    # Issue type
+    # Issue category
     issue_type: str
+
+    # Complaint title
+    title: str
 
     # Complaint description
     description: str
 
-    # Current complaint status
+    # Current status (pending, fixed etc.)
     status: str
 
+    # Priority level
+    priority: str
 
-    # Allows Pydantic to convert SQLAlchemy models to JSON
+    # Number of users who confirmed the issue is fixed
+    verification_count: int
+
+    # Number of users who reported issue still exists
+    not_fixed_count: int
+
+    # Allow SQLAlchemy models to convert automatically
     class Config:
         from_attributes = True
