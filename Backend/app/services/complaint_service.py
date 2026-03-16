@@ -65,7 +65,7 @@ class ComplaintService:
             issue_type=data.issue_type,
             title=data.title,
             description=data.description,
-            status="pending",
+            status="created",
             priority=data.priority
         )
 
