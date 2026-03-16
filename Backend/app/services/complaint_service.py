@@ -1,7 +1,10 @@
 # Import SQLAlchemy database session type
 from sqlalchemy.orm import Session
 
-# Import models used in complaint creation
+# Import text() to run raw SQL queries
+from sqlalchemy import text
+
+# Import database models
 from app.models.location import Location
 from app.models.complaint import Complaint
 from app.models.complaint_image import ComplaintImage
@@ -10,20 +13,16 @@ from app.models.complaint_image import ComplaintImage
 # Service class that contains complaint-related business logic
 class ComplaintService:
 
-    # Constructor receives the database session
+    # Constructor receives database session
     def __init__(self, db: Session):
         self.db = db
 
-
-    # Method to create a new complaint
-    # data = validated complaint data from Pydantic schema
-    # citizen_id = ID of the currently logged-in citizen
+    # ---------------------------------------------------------
+    # CREATE A NEW COMPLAINT
+    # ---------------------------------------------------------
     def create_complaint(self, data, citizen_id):
 
-        # -----------------------------
-        # STEP 1 — Save location first
-        # -----------------------------
-        # Create a Location object using nested location data from request
+        # Step 1: Create a location object
         location = Location(
             latitude=data.location.latitude,
             longitude=data.location.longitude,
@@ -32,71 +31,101 @@ class ComplaintService:
             district=data.location.district
         )
 
-        # Add location to database session
+        # Save location to database
         self.db.add(location)
 
-        # Flush sends the INSERT to the database without committing yet
-        # This allows location.location_id to be generated and available now
+        # Flush sends the insert to DB but does not commit yet
+        # This allows us to get location_id immediately
         self.db.flush()
 
-
-        # -----------------------------
-        # STEP 2 — Save complaint
-        # -----------------------------
-        # Create the complaint object
-        complaint = Complaint(
-            citizen_id=citizen_id,                 # logged-in citizen
-            location_id=location.location_id,      # link to saved location
-            issue_type=data.issue_type,            # type of issue
-            title=data.title,                      # short title
-            description=data.description,          # detailed description
-            status="created",                      # initial complaint status
-            priority=data.priority                 # priority from request
+        # -----------------------------------------------------
+        # Step 2: Update the PostGIS spatial column (geog)
+        # -----------------------------------------------------
+        self.db.execute(
+            text("""
+                UPDATE locations
+                SET geog = ST_SetSRID(
+                    ST_MakePoint(:lng, :lat), 4326
+                )::geography
+                WHERE location_id = :location_id
+            """),
+            {
+                "lng": data.location.longitude,
+                "lat": data.location.latitude,
+                "location_id": location.location_id
+            }
         )
 
-        # Add complaint to database session
+        # -----------------------------------------------------
+        # Step 3: Create complaint record
+        # -----------------------------------------------------
+        complaint = Complaint(
+            citizen_id=citizen_id,
+            location_id=location.location_id,
+            issue_type=data.issue_type,
+            title=data.title,
+            description=data.description,
+            status="pending",
+            priority=data.priority
+        )
+
+        # Add complaint to session
         self.db.add(complaint)
 
-        # Flush again so complaint.complaint_id becomes available
+        # Flush again to obtain complaint_id
         self.db.flush()
 
-
-        # -----------------------------
-        # STEP 3 — Save complaint images
-        # -----------------------------
-        # Only run if image URLs were provided
+        # -----------------------------------------------------
+        # Step 4: Save complaint images
+        # -----------------------------------------------------
         if data.image_urls:
             for url in data.image_urls:
+
+                # Create image record
                 image = ComplaintImage(
-                    complaint_id=complaint.complaint_id,  # link image to complaint
-                    image_url=url                         # URL stored in Firebase/cloud
+                    complaint_id=complaint.complaint_id,
+                    image_url=url
                 )
+
+                # Add image to database
                 self.db.add(image)
 
-
-        # -----------------------------
-        # STEP 4 — Commit everything
-        # -----------------------------
-        # Commit permanently saves all inserts:
-        # location + complaint + images
+        # -----------------------------------------------------
+        # Step 5: Commit transaction
+        # -----------------------------------------------------
         self.db.commit()
 
-        # Refresh the complaint object from database
+        # Refresh complaint object with latest DB data
         self.db.refresh(complaint)
 
-        # Return the saved complaint
+        # Return created complaint
         return complaint
 
 
-    # Get all complaints from database
+    # ---------------------------------------------------------
+    # GET ALL VISIBLE COMPLAINTS
+    # ---------------------------------------------------------
     def get_all_complaints(self):
-        return self.db.query(Complaint).all()
 
-
-    # Get one complaint by its ID
-    def get_complaint_by_id(self, complaint_id):
+        # Query complaints that are not hidden
         return (
             self.db.query(Complaint)
-            .filter(Complaint.complaint_id == complaint_id)
+            .filter(Complaint.is_hidden == False)
+            .all()
+        )
+
+
+    # ---------------------------------------------------------
+    # GET COMPLAINT BY ID
+    # ---------------------------------------------------------
+    def get_complaint_by_id(self, complaint_id):
+
+        # Query complaint by ID but exclude hidden complaints
+        return (
+            self.db.query(Complaint)
+            .filter(
+                Complaint.complaint_id == complaint_id,
+                Complaint.is_hidden == False
+            )
             .first()
         )
