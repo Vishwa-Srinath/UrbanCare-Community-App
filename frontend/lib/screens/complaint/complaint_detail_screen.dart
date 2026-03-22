@@ -58,4 +58,51 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
       }
     }
   }
+
+  Future<void> _verify({
+    required bool isFixed,
+    required String successMessage,
+  }) async {
+    if (_verifying) {
+      return;
+    }
+
+    setState(()=> _verifying = true);
+    try {
+      final updated = await widget.complaintRepository.verifyComplaint(
+        complaintId: _complaint.complaintId,
+        isFixed: isFixed,
+      );
+
+      if(!mounted) return;
+      setState((){
+        _complaint = ComplaintModel(
+          complaintId: updated.complaintId,
+          issueType:
+              updated.issueType.isEmpty ? _complaint.issueType : updated.issueType,
+          description:
+              updated.description.isEmpty ? _complaint.description : updated.description,
+          status: updated.status,
+          citizenId: updated.citizenId ?? _complaint.citizenId,
+          locationId: updated.locationId ?? _complaint.locationId,
+          location: _complaint.location,
+          distanceMeters: _complaint.distanceMeters,
+          primaryImageUrl: _complaint.primaryImageUrl,
+        );
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(successMessage)),
+      );   
+    }catch(e){
+      if(!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );  
+    }finally {
+      if(mounted){
+        setState(()=> _verifying = false);
+      }
+    }
+  }
 }
