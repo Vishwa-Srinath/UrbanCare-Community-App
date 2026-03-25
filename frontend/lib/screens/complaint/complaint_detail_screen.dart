@@ -248,5 +248,14 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
     );
   }
 
-
+  Color _statusColor(String status) {
+    final normalized = status.toLowerCase();
+    if (normalized == 'fixed' || normalized == 'closed' || normalized == 'resolved'){
+      return const Color(0xFF4ADE80);
+    }
+    if(normalized == 'in_progress' || normalized == 'assigned'){
+      return const Color(0xFF60A5FA);
+    }
+    return const Color(0xFFFBBF24);
+  }
 }
