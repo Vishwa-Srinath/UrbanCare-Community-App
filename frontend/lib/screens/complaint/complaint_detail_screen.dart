@@ -20,7 +20,7 @@ class ComplaintDetailScreen extends StatefulWidget{
 class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
   late ComplaintModel _complaint;
   bool _loading = true;
-  Bool _verifying = false;
+  bool _verifying = false;
 
   @override
   void initState() {
@@ -51,7 +51,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
         );
       });  
     }catch (_) {
-
+      // keep existing data on detail if fetch fails.
     }finally {
       if(mounted) {
         setState(()=>_loading = false);
@@ -111,7 +111,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
     final statusColor = _statusColor(_complaint.status);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Report Datail')),
+      appBar: AppBar(title: const Text('Report Detail')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -163,7 +163,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: satatusColor.withValues(alpha: 0.3)),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         _complaint.status,
