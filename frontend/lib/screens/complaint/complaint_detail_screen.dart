@@ -105,4 +105,47 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
       }
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _statusColor(_complaint.status);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Report Datail')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Container(
+                  height: 200,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Color.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  child: _complaint.primaryImageUrl == null
+                      ? Text(
+                          _complaint.emoji,
+                          style: const TextStyle(fontSize: 56),
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: Image.network(
+                            _complaint.primaryImageUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => Text(
+                              _complaint.emoji,
+                              style: const TextStyle(fontSize: 56),
+                            ),
+                          ),
+                       ),  
+                ),
+                
+              ]
+          )
+    )
+  }
 }
