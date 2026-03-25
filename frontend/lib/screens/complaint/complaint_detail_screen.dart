@@ -121,7 +121,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
                   height: 200,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Color.white.withValues(alpha: 0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
@@ -175,9 +175,78 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen>{
                     ),
                   ],
                 ),
-                
-              ]
-          )
-    )
+                const SizedBox(height: 10),
+                const Text(
+                  'DESCRIPTION',
+                  style: TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _complaint.description,
+                  style: const TextStyle(
+                    color: Color(0xFFD1D5DB),
+                    fontSize: 14,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  child: Text(
+                    _complaint.location?.address ??
+                        '📍 ${_complaint.location?.latitude.toStringAsFixed(5) ?? '-'}, '
+                            '${_complaint.location?.longitude.toStringAsFixed(5) ?? '-'}',
+                    style: const TextStyle(color: Color(0xFF9CA3AF)),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  'Confirm current status',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                PrimaryButton(
+                  label: '😐 Still There',
+                  loading: _verifying,
+                  isSecondary: true,
+                  onPressed: () => _verify(
+                    isFixed: false,
+                    successMessage: 'Marked as still there.',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                PrimaryButton(
+                  label: '✅ It\'s Fixed!',
+                  loading: _verifying,
+                  onPressed: () => _verify(
+                    isFixed: true,
+                    successMessage: 'Marked as fixed. Thanks!',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                PrimaryButton(
+                  label: '⚠️ Got Worse',
+                  loading: _verifying,
+                  isSecondary: true,
+                  onPressed: () => _verify(
+                    isFixed: false,
+                    successMessage: 'Marked as getting worse.',
+                  ),
+                ),
+              ],
+          ),
+    );
   }
+
+
 }
