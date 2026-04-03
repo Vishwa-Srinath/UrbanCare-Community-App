@@ -373,11 +373,155 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                       ],
                   ),  
               ),
-
-            ]
-          )
-        )
-      )
-    )
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.edit_location_alt_outlined, size: 18),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Issue is a bit away? Select location manually',
+                        style: TextStyle(color: Color(0xFFD1D5DB), fontSize: 13),
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: _manualLocationMode,
+                      onChanged: _toggleManualLocationMode,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                height: 210,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: _loadingLocation
+                    ? const Center(child: CircularProgressIndicator())
+                    : (_location == null && _selectedLocation == null)
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text(
+                                'Location unavailable. Refresh and allow location to pick on map.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Color(0xFF9CA3AF)),
+                              ),
+                            ),
+                        )
+                        : kIsWeb
+                            ? osm.FlutterMap(
+                                options: osm.MapOptions(
+                                  initialCenter: latlng.LatLng(
+                                    (_selectedLocation ?? _location!).latitude,
+                                    (_selectedLocation ?? _location!).longitude,
+                                  ),
+                                  initialZoom: 16,
+                                  onTap: _amnualLocationMode
+                                      ? (_, point) => _selectLocationOnOsmMap(point)
+                                      : null,
+                                ),
+                                children: [
+                                  osm.TileLayer(
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.urbancare.urbancare_frontend',
+                                  ),
+                                  osm.MarkerLayer(markers: _buildOsmLocationMarker()),
+                                ],
+                            )
+                            : GoogleMap(
+                                initialCameraPosition: CameraPosition(
+                                  target: LatLng(
+                                    (_selectedLocation ?? _location!).latitude,
+                                    (_selectedLocation ?? _location!).longitude,
+                                  ),
+                                  zoom: 16,
+                                ),
+                                markers: _buildLocationMarkers(),
+                                myLocationEnabled: _location != null,
+                                myLocationButtonEnabled: false,
+                                onTap: _manualLocationMode
+                                    ? _selectLocationOnGoogleMap
+                                    : null,
+                            ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _manualLocationMode
+                     ? 'Tap on the map to choose complaint location. Blue marker is current location.'
+                    : 'Using your current location. Enable manual mode to select a different point.',
+                style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+              ),
+              if(_location != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => setState(() => _selectedLocation = _location),
+                    icon: const Icon(Icons.my_location_outlined),
+                    label: const Text('use current location'),
+                  ),
+                ),
+              const SizedBox(height: 18),
+              const Text(
+                'PHOTO',
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.upload_outlined),
+                label: Text(
+                  _pickedImage == null ? 'Choose image' : 'Change image',
+                ),
+              ),
+              if(_pickedImage != null) ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: kIsWeb
+                      ? Image.network(
+                          _pickedImage!.path,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                      ),
+                      : Image.file(
+                          File(_pickedImage!.path),
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              PrimaryButton(
+                label: 'Report',
+                loading: _submitting,
+                onPressed: _submit,
+              ),  
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
