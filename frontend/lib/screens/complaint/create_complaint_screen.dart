@@ -193,4 +193,191 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
     return markers;
   }
 
+  Future<void> _pickImage() async {
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      imageQuality: 85,
+    );
+
+    if (image == null || !mounted) {
+      return;
+    }
+
+    setState(() => _pickedImage = image);
+  }
+
+  Future<void> _submit() async {
+    if(!_formKey.currentState!.validate()){
+      return;
+    }
+
+    final selectedLocation = _selectedLocation ?? _location;
+    if(selectedLocation == null){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please allow location and try again.')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try{
+      await widget.complaintRepository.createComplaint(
+        issueType: _issueType,
+        titile: _titileController.text.trim(),
+        description: _descriptionController.text.trim(),
+        image: _pickedImage,
+        location: selectedLocation,
+      );
+
+      if(!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Complaint submitted successfully.')),
+      );
+      Navigator.of(context).pop(true);
+    } catch(e){
+      if(!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if(mounted){
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(title: const Text('Submit Complaint')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'TYPE',
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _issueType,
+                decoration: const InputDecoration(),
+                items: _issueItems.entries
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item.key,
+                        child: Text(item.value),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _issueType = value);
+                  }
+                },    
+              ),
+              const SizedBox(height: 16),
+              TextInput(
+                controller: _titleController,
+                hint: 'Title',
+                icon: Icons.title,
+                validator: (value) {
+                  if(value == null || value.trim().isEmpty) {
+                    return 'Title is required';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextInput(
+                controller: _descriptionController,
+                hint: 'Describe the issue...',
+                maxLines: 5,
+                validator: (value) {
+                  if(value == null || value.trim().isEmpty) {
+                    return 'Description is required';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'LOCATION',
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: _loadingLocation
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _selectedLocation == null
+                                ? 'Location unavailable'
+                                : _formatCoordinates(_selectedLocation!),
+                            style: const TextStyle(color: Color()),    
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _manualLocationMode ? 'Manual' : 'Current',
+                            style: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        TextButton(
+                          onPressed: _loadLocation,
+                          child: const Text('Refresh'),
+                        ),
+                      ],
+                  ),  
+              ),
+
+            ]
+          )
+        )
+      )
+    )
+  }
 }
