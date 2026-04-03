@@ -9,7 +9,7 @@ import 'package:latlong2/latlong.dart' as latlng;
 import 'package:urbancare_frontend/models/location.dart';
 import 'package:urbancare_frontend/repositories/complaint_repository.dart';
 import 'package:urbancare_frontend/widgets/primary_button.dart';
-import 'package:urbancare_frontend/widget/text_input.dart';
+import 'package:urbancare_frontend/widgets/text_input.dart';
 
 class CreateComplaintScreen extends StatefulWidget {
   const CreateComplaintScreen({
@@ -36,9 +36,9 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   AppLocation? _location;
   AppLocation? _selectedLocation;
   XFile? _pickedImage;
-  String _issueTYpe = 'road_damage';
+  String _issueType = 'road_damage';
 
-  static const _issueItem = <String, String>{
+  static const _issueItems = <String, String>{
     'road_damage': '🚧 Road Damage',
     'streetlight': '💡 Street Light',
     'garbage': '🗑️ Garbage',
@@ -224,7 +224,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
     try{
       await widget.complaintRepository.createComplaint(
         issueType: _issueType,
-        titile: _titileController.text.trim(),
+        title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         image: _pickedImage,
         location: selectedLocation,
@@ -344,7 +344,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                             _selectedLocation == null
                                 ? 'Location unavailable'
                                 : _formatCoordinates(_selectedLocation!),
-                            style: const TextStyle(color: Color()),    
+                            style: const TextStyle(color: Color(0xFFD1D5DB)),    
                           ),
                         ),
                         Container(
@@ -429,7 +429,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                                     (_selectedLocation ?? _location!).longitude,
                                   ),
                                   initialZoom: 16,
-                                  onTap: _amnualLocationMode
+                                  onTap: _manualLocationMode
                                       ? (_, point) => _selectLocationOnOsmMap(point)
                                       : null,
                                 ),
@@ -440,7 +440,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                                     userAgentPackageName:
                                         'com.urbancare.urbancare_frontend',
                                   ),
-                                  osm.MarkerLayer(markers: _buildOsmLocationMarker()),
+                                  osm.MarkerLayer(markers: _buildOsmLocationMarkers()),
                                 ],
                             )
                             : GoogleMap(
