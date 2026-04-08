@@ -1,58 +1,87 @@
-from sqlalchemy.orm import Session
+# Import text() so we can write raw SQL queries safely
 from sqlalchemy import text
-import json
 
-from app.core.redis_client import redis_client
+# Import Session type for database operations
+from sqlalchemy.orm import Session
 
 
-def get_nearby_complaints(db: Session, lat: float, lng: float):
+# Service class for geofence-related operations
+class GeofenceService:
 
-    # cache key based on rounded coordinates
-    cache_key = f"geo:{round(lat,3)}:{round(lng,3)}"
+    # Constructor receives the database session
+    def __init__(self, db: Session):
+        self.db = db
 
-    cached = redis_client.get(cache_key)
-
-    if cached:
-        return json.loads(cached)
-
-    query = text("""
-        SELECT *
-        FROM (
+    # Method to get complaints near a given point
+    def get_nearby_complaints(
+        self,
+        lat: float,          # user's latitude
+        lng: float,          # user's longitude
+        radius_m: int = 5000,  # search radius in meters
+        limit: int = 50         # maximum number of results
+    ):
+        # Raw SQL query using PostGIS functions
+        query = text("""
             SELECT
+                -- Complaint details
                 c.complaint_id,
                 c.issue_type,
+                c.title,
+                c.description,
                 c.status,
+                c.priority,
+
+                -- Location details
                 l.latitude,
                 l.longitude,
                 l.address,
-                (
-                    6371000 * acos(
-                        cos(radians(:lat)) *
-                        cos(radians(l.latitude)) *
-                        cos(radians(l.longitude) - radians(:lng)) +
-                        sin(radians(:lat)) *
-                        sin(radians(l.latitude))
-                    )
-                ) AS distance
+                l.city,
+                l.district,
+
+                -- Calculate exact distance from user location to complaint location
+                ST_Distance(
+                    l.geog,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+                ) AS distance_m
+
             FROM complaints c
+
+            -- Join complaints with locations using location_id
             JOIN locations l
-            ON c.location_id = l.location_id
-            WHERE c.is_hidden = FALSE
-        ) AS subquery
-        WHERE distance < 5000
-        ORDER BY distance
-        LIMIT 50
-    """)
+              ON c.location_id = l.location_id
 
-    result = db.execute(query, {"lat": lat, "lng": lng})
+            WHERE
+                -- Only show complaints that are not hidden
+                c.is_hidden = FALSE
 
-    complaints = []
+                -- Make sure the spatial column exists
+                AND l.geog IS NOT NULL
 
-    for row in result:
-        data = dict(row._mapping)
-        complaints.append(data)
+                -- Only return complaints within the given radius
+                AND ST_DWithin(
+                    l.geog,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    :radius_m
+                )
 
-    # cache result for 5 minutes
-    redis_client.setex(cache_key, 300, json.dumps(complaints, default=str))
+            -- Show nearest complaints first
+            ORDER BY distance_m
 
-    return complaints
+            -- Limit total rows returned
+            LIMIT :limit
+        """)
+
+        # Execute the query with actual parameter values
+        result = self.db.execute(
+            query,
+            {
+                "lat": lat,
+                "lng": lng,
+                "radius_m": radius_m,
+                "limit": limit
+            }
+        )
+
+        # Convert each returned row into a normal dictionary
+        # row._mapping gives dictionary-like access to columns
+        return [dict(row._mapping) for row in result]

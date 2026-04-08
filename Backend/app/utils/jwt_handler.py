@@ -10,34 +10,33 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 
+class JwtHandler:
+    @staticmethod
+    def create_access_token(data: dict):
+        payload = data.copy()
+        payload["exp"] = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+
+        return jwt.encode(
+            payload,
+            SECRET_KEY,
+            algorithm=ALGORITHM
+        )
+
+    @staticmethod
+    def verify_token(token: str):
+        try:
+            return jwt.decode(
+                token,
+                SECRET_KEY,
+                algorithms=[ALGORITHM]
+            )
+        except JWTError:
+            return None
+
+
 def create_access_token(data: dict):
-
-    to_encode = data.copy()
-
-    expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-
-    to_encode.update({"exp": expire})
-
-    encoded_jwt = jwt.encode(
-        to_encode,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
-
-    return encoded_jwt
+    return JwtHandler.create_access_token(data)
 
 
 def verify_token(token: str):
-
-    try:
-
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
-        )
-
-        return payload
-
-    except JWTError:
-        return None
+    return JwtHandler.verify_token(token)
